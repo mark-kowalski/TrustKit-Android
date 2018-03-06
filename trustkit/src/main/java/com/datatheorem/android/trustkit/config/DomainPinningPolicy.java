@@ -32,7 +32,7 @@ public final class DomainPinningPolicy {
     private final boolean shouldEnforcePinning;
     @NonNull private final Set<URL> reportUris;
 
-    DomainPinningPolicy(@NonNull String hostname,
+    public DomainPinningPolicy(@NonNull String hostname,
                         Boolean shouldIncludeSubdomains,
                         @NonNull Set<String> publicKeyHashStrList,
                         Boolean shouldEnforcePinning,

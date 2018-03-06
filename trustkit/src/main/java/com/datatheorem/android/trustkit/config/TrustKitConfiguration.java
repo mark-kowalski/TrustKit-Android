@@ -5,11 +5,16 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.datatheorem.android.trustkit.config.model.DebugSettings;
+import com.datatheorem.android.trustkit.config.model.Domain;
+import com.datatheorem.android.trustkit.config.model.DomainConfig;
+import com.datatheorem.android.trustkit.config.model.PinSet;
+import com.datatheorem.android.trustkit.config.model.TrustkitConfig;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
@@ -33,14 +38,30 @@ public class TrustKitConfiguration {
         return TrustKitConfigurationParser.fromXmlPolicy(context, parser);
     }
 
-    public static TrustKitConfiguration fromCustomConfiguration() {
-        List<DomainPinningPolicy.Builder> builderList = new ArrayList<>();
+    public static TrustKitConfiguration fromCustomConfiguration(List<DomainConfig> domainConfigs,
+                                                                DebugSettings debugSettings) {
+        HashSet<DomainPinningPolicy> domainConfigSet = new HashSet<>();
 
-        DomainPinningPolicy.Builder builder = new DomainPinningPolicy.Builder();
-        builder.setHostname("").setShouldIncludeSubdomains(true);
+        for (DomainConfig domainConfig : domainConfigs) {
+            DomainPinningPolicy.Builder builder = new DomainPinningPolicy.Builder();
 
-        // ToDo implement
-        return new TrustKitConfiguration(null);
+            builder.setHostname(domainConfig.getDomain().getHostName()).
+                    setShouldIncludeSubdomains(domainConfig.getDomain().getIncludeSubdomains());
+            builder.setPublicKeyHashes(domainConfig.getPinSet().getPins())
+                    .setExpirationDate(domainConfig.getPinSet().getExpirationDate());
+            builder.setHostname("").setShouldIncludeSubdomains(true);
+            builder.setReportUris(domainConfig.getTrustkitConfig().getReportUris())
+                    .setShouldEnforcePinning(domainConfig.getTrustkitConfig().shouldEnforcePinning())
+                    .setShouldDisableDefaultReportUri(domainConfig.getTrustkitConfig().shouldDisableDefaultReportUri());
+
+            try {
+                domainConfigSet.add(builder.build());
+            } catch (MalformedURLException e) {
+                throw new ConfigurationException("Could not parse network security policy file");
+            }
+        }
+
+        return new TrustKitConfiguration(domainConfigSet, debugSettings);
     }
 
     TrustKitConfiguration(@NonNull Set<DomainPinningPolicy> domainConfigSet) {

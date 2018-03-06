@@ -6,6 +6,9 @@ import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import com.datatheorem.android.trustkit.config.model.DebugSettings;
+import com.datatheorem.android.trustkit.config.model.Domain;
+import com.datatheorem.android.trustkit.config.model.PinSet;
+import com.datatheorem.android.trustkit.config.model.TrustkitConfig;
 import com.datatheorem.android.trustkit.utils.TrustKitLog;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -86,18 +89,18 @@ class TrustKitConfigurationParser {
                     // Nested domain configuration tag
                     builderList.addAll(readDomainConfig(parser, builder));
                 } else if ("domain".equals(parser.getName())) {
-                    DomainTag domainTag = readDomain(parser);
-                    builder.setHostname(domainTag.hostname)
-                            .setShouldIncludeSubdomains(domainTag.includeSubdomains);
+                    Domain domainTag = readDomain(parser);
+                    builder.setHostname(domainTag.getHostName())
+                            .setShouldIncludeSubdomains(domainTag.getIncludeSubdomains());
                 } else if ("pin-set".equals(parser.getName())) {
-                    PinSetTag pinSetTag = readPinSet(parser);
-                    builder.setPublicKeyHashes(pinSetTag.pins)
-                            .setExpirationDate(pinSetTag.expirationDate);
+                    PinSet pinSetTag = readPinSet(parser);
+                    builder.setPublicKeyHashes(pinSetTag.getPins())
+                            .setExpirationDate(pinSetTag.getExpirationDate());
                 } else if ("trustkit-config".equals(parser.getName())) {
-                    TrustkitConfigTag trustkitTag = readTrustkitConfig(parser);
-                    builder.setReportUris(trustkitTag.reportUris)
-                            .setShouldEnforcePinning(trustkitTag.enforcePinning)
-                            .setShouldDisableDefaultReportUri(trustkitTag.disableDefaultReportUri);
+                    TrustkitConfig trustkitTag = readTrustkitConfig(parser);
+                    builder.setReportUris(trustkitTag.getReportUris())
+                            .setShouldEnforcePinning(trustkitTag.shouldEnforcePinning())
+                            .setShouldDisableDefaultReportUri(trustkitTag.shouldDisableDefaultReportUri());
                 }
             }
             eventType = parser.next();
@@ -105,17 +108,12 @@ class TrustKitConfigurationParser {
         return builderList;
     }
 
-    private static class PinSetTag {
-        Date expirationDate = null;
-        Set<String> pins = null;
-    }
-
     @NonNull
-    private static PinSetTag readPinSet(@NonNull XmlPullParser parser) throws IOException,
+    private static PinSet readPinSet(@NonNull XmlPullParser parser) throws IOException,
             XmlPullParserException {
         parser.require(XmlPullParser.START_TAG, null, "pin-set");
-        PinSetTag pinSetTag = new PinSetTag();
-        pinSetTag.pins = new HashSet<>();
+        PinSet pinSetTag = new PinSet();
+        pinSetTag.setPins(new HashSet<String>());
 
         // Look for the expiration attribute
         // Taken from https://github.com/android/platform_frameworks_base/blob/master/core/java/android/security/net/config/XmlConfigSource.java
@@ -128,7 +126,7 @@ class TrustKitConfigurationParser {
                 if (date == null) {
                     throw new ConfigurationException("Invalid expiration date in pin-set");
                 }
-                pinSetTag.expirationDate = date;
+                pinSetTag.setExpirationDate(date);
             } catch (ParseException e) {
                 throw new ConfigurationException("Invalid expiration date in pin-set");
             }
@@ -146,37 +144,31 @@ class TrustKitConfigurationParser {
                     throw new IllegalArgumentException("Unexpected digest value: " + digest);
                 }
                 // Parse the pin value
-                pinSetTag.pins.add(parser.nextText());
+                pinSetTag.addPin(parser.nextText());
             }
             eventType = parser.next();
         }
         return pinSetTag;
     }
 
-    private static class TrustkitConfigTag {
-        Boolean enforcePinning = null;
-        Boolean disableDefaultReportUri = null;
-        Set<String> reportUris;
-    }
-
     @NonNull
-    private static TrustkitConfigTag readTrustkitConfig(@NonNull XmlPullParser parser)
+    private static TrustkitConfig readTrustkitConfig(@NonNull XmlPullParser parser)
             throws IOException, XmlPullParserException {
         parser.require(XmlPullParser.START_TAG, null, "trustkit-config");
 
-        TrustkitConfigTag result = new TrustkitConfigTag();
+        TrustkitConfig result = new TrustkitConfig();
         Set<String> reportUris = new HashSet<>();
 
         // Look for the enforcePinning attribute
         String enforcePinning = parser.getAttributeValue(null, "enforcePinning");
         if (enforcePinning != null) {
-            result.enforcePinning = Boolean.parseBoolean(enforcePinning);
+            result.setEnforcePinning(Boolean.parseBoolean(enforcePinning));
         }
 
         // Look for the disableDefaultReportUri attribute
         String disableDefaultReportUri = parser.getAttributeValue(null, "disableDefaultReportUri");
         if (disableDefaultReportUri != null) {
-            result.disableDefaultReportUri = Boolean.parseBoolean(disableDefaultReportUri);
+            result.setDisableDefaultReportUri(Boolean.parseBoolean(disableDefaultReportUri));
         }
 
         // Parse until the corresponding close trustkit-config tag
@@ -190,29 +182,24 @@ class TrustKitConfigurationParser {
             eventType = parser.next();
         }
 
-        result.reportUris = reportUris;
+        result.setReportUris(reportUris);
         return result;
     }
 
-    private static class DomainTag {
-        Boolean includeSubdomains = null;
-        String hostname = null;
-    }
-
     @NonNull
-    private static DomainTag readDomain(@NonNull XmlPullParser parser) throws IOException,
+    private static Domain readDomain(@NonNull XmlPullParser parser) throws IOException,
             XmlPullParserException {
         parser.require(XmlPullParser.START_TAG, null, "domain");
-        DomainTag result = new DomainTag();
+        Domain result = new Domain();
 
         // Look for the includeSubdomains attribute
         String includeSubdomains = parser.getAttributeValue(null, "includeSubdomains");
         if (includeSubdomains != null) {
-            result.includeSubdomains = Boolean.parseBoolean(includeSubdomains);
+            result.setIncludeSubdomains(Boolean.parseBoolean(includeSubdomains));
         }
 
         // Parse the domain text
-        result.hostname = parser.nextText();
+        result.setHostName(parser.nextText());
         return result;
     }
 
