@@ -4,13 +4,17 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.datatheorem.android.trustkit.config.model.DebugSettings;
+
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
@@ -23,21 +27,30 @@ public class TrustKitConfiguration {
     private final boolean shouldOverridePins;
     @Nullable private final Set<Certificate> debugCaCertificates;
 
-
     public static TrustKitConfiguration fromXmlPolicy(@NonNull Context context,
                                                       @NonNull XmlPullParser parser)
             throws CertificateException, XmlPullParserException, IOException {
         return TrustKitConfigurationParser.fromXmlPolicy(context, parser);
     }
 
+    public static TrustKitConfiguration fromCustomConfiguration() {
+        List<DomainPinningPolicy.Builder> builderList = new ArrayList<>();
 
-    protected TrustKitConfiguration(@NonNull Set<DomainPinningPolicy> domainConfigSet) {
-        this(domainConfigSet, false, null);
+        DomainPinningPolicy.Builder builder = new DomainPinningPolicy.Builder();
+        builder.setHostname("").setShouldIncludeSubdomains(true);
+
+        // ToDo implement
+        return new TrustKitConfiguration(null);
     }
 
-    protected TrustKitConfiguration(@NonNull Set<DomainPinningPolicy> domainConfigSet,
-                                  boolean shouldOverridePins,
-                                  @Nullable Set<Certificate> debugCaCerts) {
+    TrustKitConfiguration(@NonNull Set<DomainPinningPolicy> domainConfigSet) {
+        this(domainConfigSet, new DebugSettings(false, null));
+    }
+
+    TrustKitConfiguration(@NonNull Set<DomainPinningPolicy> domainConfigSet, DebugSettings debugSettings) {
+        if (debugSettings == null) {
+            debugSettings = new DebugSettings(false, null);
+        }
 
         if (domainConfigSet.size() < 1) {
             throw new ConfigurationException("Policy contains 0 domains to pin");
@@ -52,8 +65,8 @@ public class TrustKitConfiguration {
             hostnameSet.add(domainConfig.getHostname());
         }
         this.domainPolicies = domainConfigSet;
-        this.shouldOverridePins = shouldOverridePins;
-        this.debugCaCertificates = debugCaCerts;
+        this.shouldOverridePins = debugSettings.shouldOverridePins();
+        this.debugCaCertificates = debugSettings.getDebugCaCertificates();
     }
 
     public boolean shouldOverridePins() {

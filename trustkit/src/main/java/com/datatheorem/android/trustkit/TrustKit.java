@@ -32,7 +32,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-
 /**
  * Class that provides all of the TrustKit public APIs.
  *
@@ -322,6 +321,12 @@ public class TrustKit {
         }
 
         trustKitInstance = new TrustKit(context, trustKitConfiguration);
+        return trustKitInstance;
+    }
+
+    public synchronized static TrustKit initializeWithTrustKitConfiguration(Context context) {
+        TrustKitConfiguration conf = TrustKitConfiguration.fromCustomConfiguration();
+        trustKitInstance = new TrustKit(context, conf);
         return trustKitInstance;
     }
 

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
+import com.datatheorem.android.trustkit.config.model.DebugSettings;
 import com.datatheorem.android.trustkit.utils.TrustKitLog;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -32,14 +33,14 @@ class TrustKitConfigurationParser {
      * {@link TrustKitConfiguration}.
      */
     @NonNull
-    public static TrustKitConfiguration fromXmlPolicy(@NonNull Context context,
-                                                      @NonNull XmlPullParser parser)
+    static TrustKitConfiguration fromXmlPolicy(@NonNull Context context,
+                                               @NonNull XmlPullParser parser)
             throws XmlPullParserException, IOException, CertificateException {
         // Handle nested domain config tags
         // https://developer.android.com/training/articles/security-config.html#ConfigInheritance
         List<DomainPinningPolicy.Builder> builderList = new ArrayList<>();
 
-        DebugOverridesTag debugOverridesTag = null;
+        DebugSettings debugOverridesTag = null;
 
         int eventType = parser.getEventType();
         while (eventType != XmlPullParser.END_DOCUMENT) {
@@ -55,19 +56,12 @@ class TrustKitConfigurationParser {
         }
 
         // Finally, store the result of the parsed policy in our configuration object
-        TrustKitConfiguration config;
         HashSet<DomainPinningPolicy> domainConfigSet = new HashSet<>();
         for (DomainPinningPolicy.Builder builder : builderList) {
             domainConfigSet.add(builder.build());
         }
 
-        if (debugOverridesTag != null) {
-            config = new TrustKitConfiguration(domainConfigSet, debugOverridesTag.overridePins,
-                    debugOverridesTag.debugCaCertificates);
-        } else {
-            config = new TrustKitConfiguration(domainConfigSet);
-        }
-        return config;
+        return new TrustKitConfiguration(domainConfigSet, debugOverridesTag);
     }
 
     // Heavily inspired from
@@ -222,17 +216,12 @@ class TrustKitConfigurationParser {
         return result;
     }
 
-    private static class DebugOverridesTag {
-        boolean overridePins = false;
-        Set<Certificate> debugCaCertificates = null;
-    }
-
     @NonNull
-    private static DebugOverridesTag readDebugOverrides(@NonNull Context context,
-                                                        @NonNull XmlPullParser parser)
+    private static DebugSettings readDebugOverrides(@NonNull Context context,
+                                                    @NonNull XmlPullParser parser)
             throws CertificateException, IOException, XmlPullParserException {
         parser.require(XmlPullParser.START_TAG, null, "debug-overrides");
-        DebugOverridesTag result = new DebugOverridesTag();
+        DebugSettings result = new DebugSettings();
         Boolean lastOverridePinsEncountered = null;
         Set<Certificate> debugCaCertificates = new HashSet<>();
 
@@ -282,10 +271,10 @@ class TrustKitConfigurationParser {
         }
 
         if (lastOverridePinsEncountered != null) {
-            result.overridePins = lastOverridePinsEncountered;
+            result.setOverridePins(lastOverridePinsEncountered);
         }
-        if (debugCaCertificates.size() > 0) {
-            result.debugCaCertificates = debugCaCertificates;
+        if (!debugCaCertificates.isEmpty()) {
+            result.setDebugCaCertificates(debugCaCertificates);
         }
         return result;
     }
