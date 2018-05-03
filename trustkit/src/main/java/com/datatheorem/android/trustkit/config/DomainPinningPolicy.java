@@ -32,13 +32,13 @@ public final class DomainPinningPolicy {
     private final boolean shouldEnforcePinning;
     @NonNull private final Set<URL> reportUris;
 
-    DomainPinningPolicy(@NonNull String hostname,
-                        Boolean shouldIncludeSubdomains,
-                        @NonNull Set<String> publicKeyHashStrList,
-                        Boolean shouldEnforcePinning,
-                        @Nullable Date expirationDate,
-                        @Nullable Set<String> reportUriStrList,
-                        Boolean shouldDisableDefaultReportUri)
+    public DomainPinningPolicy(@NonNull String hostname,
+                               Boolean shouldIncludeSubdomains,
+                               @NonNull Set<String> publicKeyHashStrList,
+                               Boolean shouldEnforcePinning,
+                               @Nullable Date expirationDate,
+                               @Nullable Set<String> reportUriStrList,
+                               Boolean shouldDisableDefaultReportUri)
             throws MalformedURLException {
         // Run some sanity checks on the configuration
         // Check if the hostname seems valid

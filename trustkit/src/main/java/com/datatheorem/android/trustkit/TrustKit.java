@@ -3,12 +3,12 @@ package com.datatheorem.android.trustkit;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.net.SSLCertificateSocketFactory;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.util.Printer;
 
 import com.datatheorem.android.trustkit.config.ConfigurationException;
+import com.datatheorem.android.trustkit.config.DomainPinningPolicy;
 import com.datatheorem.android.trustkit.config.TrustKitConfiguration;
 import com.datatheorem.android.trustkit.pinning.TrustManagerBuilder;
 import com.datatheorem.android.trustkit.reporting.BackgroundReporter;
@@ -18,11 +18,9 @@ import com.datatheorem.android.trustkit.utils.VendorIdentifier;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
-
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.Set;
@@ -320,6 +318,33 @@ public class TrustKit {
             throw new ConfigurationException("Could not find the debug certificate in the " +
                     "network security police file");
         }
+
+        trustKitInstance = new TrustKit(context, trustKitConfiguration);
+        return trustKitInstance;
+    }
+
+    @NonNull
+    public synchronized static TrustKit initializeWithDomainPinningPolicies(
+            @NonNull Context context, Set<DomainPinningPolicy> pinningPolicies) {
+        if (trustKitInstance != null) {
+            throw new IllegalStateException("TrustKit has already been initialized");
+        }
+
+        // On Android N, ensure that the system was also able to load the policy
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.N) {
+            // This will need to be updated/double-checked for subsequent versions of Android
+            int systemConfigResId = getNetSecConfigResourceId(context);
+            if (systemConfigResId == -1) {
+                // Android did not find a policy because the supplied resource ID is wrong or the
+                // policy file is not properly setup in the manifest, or contains bad data
+                throw new ConfigurationException("TrustKit was initialized with a network policy " +
+                        "that was not properly configured for Android N - make sure it is in the " +
+                        "App's Manifest.");
+            }
+        }
+
+        // Then try to load the supplied policy
+        TrustKitConfiguration trustKitConfiguration = new TrustKitConfiguration(pinningPolicies);
 
         trustKitInstance = new TrustKit(context, trustKitConfiguration);
         return trustKitInstance;

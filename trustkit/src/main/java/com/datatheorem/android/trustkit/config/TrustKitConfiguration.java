@@ -31,7 +31,7 @@ public class TrustKitConfiguration {
     }
 
 
-    protected TrustKitConfiguration(@NonNull Set<DomainPinningPolicy> domainConfigSet) {
+    public TrustKitConfiguration(@NonNull Set<DomainPinningPolicy> domainConfigSet) {
         this(domainConfigSet, false, null);
     }
 

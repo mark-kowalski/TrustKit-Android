@@ -10,11 +10,15 @@ import android.view.MenuItem;
 import android.widget.TextView;
 
 import com.datatheorem.android.trustkit.TrustKit;
+import com.datatheorem.android.trustkit.config.DomainPinningPolicy;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -41,6 +45,23 @@ public class DemoMainActivity extends AppCompatActivity {
         new DownloadWebpageTask().execute("https://www.google.com");
 
         textView.setText("Connection results are in the logs");
+
+        try {
+            TrustKit.initializeWithDomainPinningPolicies(this, getDomainPinningPolicies());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Set<DomainPinningPolicy> getDomainPinningPolicies() throws MalformedURLException {
+        Set<DomainPinningPolicy> domainPinningPolicies = new HashSet<>();
+
+        domainPinningPolicies.add(new DomainPinningPolicy("hostname A", false,
+                new HashSet<String>(), true, new Date(), new HashSet<String>(), false));
+        domainPinningPolicies.add(new DomainPinningPolicy("hostname A", false,
+                new HashSet<String>(), true, new Date(), new HashSet<String>(), false));
+
+        return domainPinningPolicies;
     }
 
     private class DownloadWebpageTask extends AsyncTask<String, Void, String> {
